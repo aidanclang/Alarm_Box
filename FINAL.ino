@@ -11,6 +11,12 @@
 #define LED3
 #define LED4
 
+// things for button debouncing
+int button_delay = 50;
+unsigned long last_change[] = {0, 0, 0, 0};
+int last_state[] = {LOW, LOW, LOW, LOW};
+int current_states[] = {LOW, LOW, LOW, LOW};
+
 // default timer settings
 int hours = 8;
 int minutes = 0;
@@ -48,8 +54,16 @@ void setup() {
   lcd.display(); 
 }
 
-int buttonRead(int button){
+int buttonRead(int index, int button){
+  int reading = digitalRead(button);
+  if(reading != last_state[index])
+    last_change[index] = millis();
   
+  if(millis() > last_change[index] + button_delay){
+    if(reading != current_states[index])
+      current_states[index] = reading;
+  }
+  return current_states[index];
 }
 
 void timer(unsigned long time){
