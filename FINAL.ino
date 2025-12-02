@@ -40,14 +40,22 @@ int last_states[] = {LOW, LOW, LOW, LOW};
 int current_states[] = {LOW, LOW, LOW, LOW};
 int pressed[] = {0, 0, 0, 0};
 
-//default settings
+//default settings and their maximum values
 int settings[] = {
   8, 0, 0,            // hours, minutes, seconds
   1, 5, 15,           // alarm, alarm_volume, alarm_delay
   1, 0,               // buzzer, buzzer_delay
   1, 30,              // shake, shake_time
-  1, 5,               // game, game_time
+  1, 5,               // game, game_levels
   1                   // light
+};
+int max_values[] = {
+  12, 12, 12,
+  1, 10, 30,
+  1, 30,
+  1, 60,
+  1, 15,
+  1
 };
 
 // accelerometer and screen
@@ -160,7 +168,34 @@ void timer(unsigned long time){
 }
 
 void set_settings(){
-  //TODO
+  int index = 0;
+  while(index < 13){
+    read_buttons();
+
+    if(index == hours || index == minutes || index == seconds){
+      // display timer settings on screen
+    } else if(index == alarm || index == alarm_volume || index == alarm_delay){
+      // display alarm settings
+    } else if(index == buzzer || index == buzzer_delay){
+      // display buzzer settings
+    } else if(index == shake || index == shake_time){
+      // display shake settings
+    } else if(index == game || index == game_levels){
+      // display game settings
+    } else if(index == light){
+      // display light settings
+    }
+
+    if(button_is_pressed(0)){
+      index = max(index - 1, 0);
+    } else if(button_is_pressed(3)){
+      index += 1;
+    } else if(button_is_pressed(1)){
+      settings[index] = max(settings[index] - 1, 0);
+    } else if(button_is_pressed(2)){
+      settings[index] = min(settings[index] + 1, max_values[index]);
+    }
+  }
 }
 
 void loop() {
