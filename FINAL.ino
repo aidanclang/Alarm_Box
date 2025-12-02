@@ -29,7 +29,7 @@
 
 // constants
 const unsigned long noise_time = 15000;
-const int shake_threshold = 2048; // needs testing
+const float shake_threshold = 25; // needs testing
 const unsigned long shake_increment = 1; // needs testing
 
 // things for button reading
@@ -73,13 +73,20 @@ void setup() {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
 
+  if (!mpu.begin()) {
+    Serial.println("Sensor init failed");
+    while (1)
+      yield();
+  }
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_5_HZ);
+
   lcd.init();
   lcd.flipScreenVertically();
   lcd.clear();
   lcd.setFont(ArialMT_Plain_24);
-  String text = "00:00:00";
-  lcd.drawString(0, 0, text);
-  lcd.display(); 
+  lcd.display();
 }
 
 unsigned long get_ms(int hour, int min, int sec){
@@ -91,6 +98,7 @@ void start_noises(unsigned long init_time){
 }
 
 void start_shake(unsigned long init_time){
+  //TODO: update display during shaking
   if(settings[shake] == 0)
     return;
   unsigned long last_activity = millis();
@@ -99,7 +107,7 @@ void start_shake(unsigned long init_time){
     if(millis() - last_activity > noise_time){
       start_noises(init_time);
       time_shaken = 0;
-    } else if(net_acceleration() > shake_threshold){
+    } else if(total_acceleration() > shake_threshold){
       time_shaken += shake_increment;
       last_activity = millis();
     }
@@ -144,8 +152,26 @@ int button_is_pressed(int button_number){
   return pressed[button_number];
 }
 
-int net_acceleration(){
-  //TODO
+float total_acceleration(){
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  return sqrt(
+    a.acceleration.x * a.acceleration.x +
+    a.acceleration.y * a.acceleration.y +
+    a.acceleration.z * a.acceleration.z
+  );
+}
+
+void update_settings_screen(int num_settings, String current_settings[], int values[], int being_changed){
+  lcd.clear();
+  for(int i = 0; i < num_settings; i++){
+    String text = current_settings[i];
+    text += values[i];
+    if(i == being_changed)
+      text += " <";
+    lcd.println(text);
+  }
+  lcd.display();
 }
 
 void timer(unsigned long time){
