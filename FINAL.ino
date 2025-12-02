@@ -27,6 +27,11 @@
 #define game_levels   11
 #define light         12
 
+// constants
+const unsigned long noise_time = 15000;
+const int shake_threshold = 2048; // needs testing
+const unsigned long shake_increment = 1; // needs testing
+
 // things for button reading
 int button_delay = 50;
 int buttons[] = {B0, B1, B2, B3};
@@ -70,8 +75,7 @@ void setup() {
 }
 
 unsigned long get_ms(int hour, int min, int sec){
-  //TODO
-  return 0;
+  return (hour * 3600000) + (min * 60000) + (sec * 1000);
 }
 
 void start_noises(unsigned long init_time){
@@ -79,7 +83,19 @@ void start_noises(unsigned long init_time){
 }
 
 void start_shake(unsigned long init_time){
-  //TODO
+  if(settings[shake] == 0)
+    return;
+  unsigned long last_activity = millis();
+  unsigned long time_shaken = 0;
+  while(time_shaken < settings[shake_time]){
+    if(millis() - last_activity > noise_time){
+      start_noises(init_time);
+      time_shaken = 0;
+    } else if(net_acceleration() > shake_threshold){
+      time_shaken += shake_increment;
+      last_activity = millis();
+    }
+  }
 }
 
 void start_game(unsigned long init_time){
@@ -91,7 +107,11 @@ void start_light(unsigned long init_time){
 }
 
 void go_off(){
-  //TODO
+  unsigned long init_time = millis();
+  start_noises(init_time);
+  start_shake(init_time);
+  start_game(init_time);
+  start_light(init_time);
 }
 
 // button reader with debouncing
@@ -114,6 +134,10 @@ void read_buttons(){
 
 int button_is_pressed(int button_number){
   return pressed[button_number];
+}
+
+int net_acceleration(){
+  //TODO
 }
 
 void timer(unsigned long time){
