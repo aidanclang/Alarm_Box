@@ -72,7 +72,114 @@ void timer(unsigned long time){
 }
 
 void set_settings(){
-  
+  int screenCycle = 0;
+  if (buttonRead(B1) == HIGH){
+    // cycle screen to previous setting
+    screenCycle -= 1;
+    if (screenCycle < 0){
+      screenCycle = 0;
+    }
+  }
+  if (buttonRead(B4) == HIGH){
+    // cycle screen to next setting
+    screenCycle += 1;
+  }
+
+
+  if (screenCycle == 0){
+    // set hours
+    if (buttonRead(B2) == HIGH){
+      // increase
+      hours += 1;
+      if (hours > 23){
+        hours = 0;
+      }
+    }
+    if (buttonRead(B3) == HIGH){
+      // decrease
+      hours -= 1;
+      if (hours < 0){
+        hours = 23;
+      }
+    }
+  }
+  else if (screenCycle == 1){
+    // set minutes
+    if (buttonRead(B2) == HIGH){
+      // increase
+      minutes += 1;
+      if (minutes > 59){
+        minutes = 0;
+      }
+    }
+    if (buttonRead(B3) == HIGH){
+      // decrease
+      minutes -= 1;
+      if (minutes < 0){
+        minutes = 59;
+      }
+    }
+  }
+  else if (screenCycle == 2){
+    // set seconds
+    if (buttonRead(B2) == HIGH){
+      // increase
+      seconds += 1;
+      if (seconds > 59){
+        seconds = 0;
+      }
+    }
+    if (buttonRead(B3) == HIGH){
+      // decrease
+      seconds -= 1;
+      if (seconds < 0){
+        seconds = 59;
+      }
+    }
+  }
+  else if (screenCycle == 3){
+    // set alarm
+    if (buttonRead(B2) == HIGH){
+      // toggle alarm
+      alarm = !alarm;
+    }
+  }
+  else if (screenCycle == 4){
+    // set buzzer
+    if (buttonRead(B2) == HIGH){
+      // toggle buzzer
+      buzzer = !buzzer;
+    }
+  }
+  else if (screenCycle == 5){
+    // set shaking
+    if (buttonRead(B2) == HIGH){
+      // toggle shaking
+      shake = !shake;
+    }
+  }
+  else if (screenCycle == 6){
+    // set game
+    if (buttonRead(B2) == HIGH){
+      // toggle game
+      game = !game;
+    }
+  }
+  else if (screenCycle == 7){
+    // set light sensor
+    if (buttonRead(B2) == HIGH){
+      // toggle light sensor
+      light = !light;
+    }
+  }
+}
+
+int lightLVL(bool setting){
+  if (setting == true){
+    // read light sensor value
+    int sensorValue = analogRead();
+    return sensorValue;
+  }
 }
 
 void loop() {
