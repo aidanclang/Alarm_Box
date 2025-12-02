@@ -74,6 +74,22 @@ unsigned long get_ms(int hour, int min, int sec){
   return 0;
 }
 
+void start_noises(unsigned long init_time){
+  //TODO
+}
+
+void start_shake(unsigned long init_time){
+  //TODO
+}
+
+void start_game(unsigned long init_time){
+  //TODO
+}
+
+void start_light(unsigned long init_time){
+  //TODO
+}
+
 void go_off(){
   //TODO
 }
