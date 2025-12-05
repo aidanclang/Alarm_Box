@@ -40,6 +40,10 @@ const int alarm_freq = 300;
 const int alarm_note_len = 250;
 const int len_between_notes = 250;
 
+const int lights[] = {LED0, LED1, LED2, LED3};
+
+const int light_threshold = 3500;
+
 // things for button reading
 int button_delay = 50;
 int buttons[] = {B0, B1, B2, B3};
@@ -144,6 +148,7 @@ void start_shake(unsigned long init_time){
 
     if(millis() - last_activity > noise_time){
       start_noises(init_time);
+      last_activity = millis();
       time_shaken = 0;
     } else if(total_acceleration() > shake_threshold){
       time_shaken += shake_increment;
@@ -152,12 +157,54 @@ void start_shake(unsigned long init_time){
   }
 }
 
-void start_game(unsigned long init_time){
-  //TODO
+void start_game(unsigned long init_time) {
+  if(settings[game] == 0)
+    return;
+  unsigned long last_act = millis();
+  int pattern[settings[game_levels]];
+  for(int i = 0; i<settings[game_levels]; i++) {
+    pattern[i] = random(0,4);
+  }
+  int level = 1;
+  while(level <= settings[game_levels]) {
+    for(int i = 0; i<level; i++) {
+      digitalWrite(lights[pattern[i]], HIGH);
+      delay(50);
+      digitalWrite(lights[pattern[i]], LOW);
+    }
+    int step = 0;
+    while(step < level) {
+      read_buttons();
+      int sum = buttons[0] + buttons[1] + buttons[2] + buttons[3];
+      if (sum > 0){
+        last_act = millis();
+        if (sum > 1)
+          break;
+        if (buttons[pattern[step]] == 1) {
+          step++;
+        } else {
+          break;
+        }
+      }
+      if(millis() - last_act > 15000) {
+        start_noises(init_time);
+        last_act = millis();
+      }
+    }
+    level++;
+  }  
 }
 
-void start_light(unsigned long init_time){
-  //TODO
+void start_light(unsigned long init_time) {
+  if(settings[light] == 0)
+    return;
+  unsigned long last_act = millis();
+  while (analogRead(LIGHT) < light_threshold) {
+    if(millis() - last_act > 15000) {
+      start_noises(init_time);
+      last_act = millis();
+    }
+  }
 }
 
 void go_off(){
