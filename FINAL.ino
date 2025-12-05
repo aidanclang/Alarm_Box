@@ -15,6 +15,7 @@
 
 #define BUZZ 0
 #define VIBR 0
+#define LIGHT 0
 
 #define hours         0
 #define minutes       1
