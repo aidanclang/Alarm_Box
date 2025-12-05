@@ -13,6 +13,9 @@
 #define LED2 0
 #define LED3 0
 
+#define BUZZ 0
+#define VIBR 0
+
 #define hours         0
 #define minutes       1
 #define seconds       2 
@@ -31,6 +34,10 @@
 const unsigned long noise_time = 15000;
 const float shake_threshold = 25; // needs testing
 const unsigned long shake_increment = 1; // needs testing
+
+const int alarm_freq = 300;
+const int alarm_note_len = 250;
+const int len_between_notes = 250;
 
 // things for button reading
 int button_delay = 50;
@@ -94,7 +101,29 @@ unsigned long get_ms(int hour, int min, int sec){
 }
 
 void start_noises(unsigned long init_time){
-  //TODO
+  // display instructions
+  String message[] = {"Press any button. :"};
+  int value[] = {0};
+  update_screen(message, value, -1);
+
+  bool input = false;
+  while(!input){
+    read_buttons();
+    input = button_is_pressed(0) ||
+            button_is_pressed(1) ||
+            button_is_pressed(2) ||
+            button_is_pressed(3);
+    unsigned long curr_time = millis();
+    if(settings[alarm] == 1 && curr_time - init_time > settings[alarm_delay]*1000){
+      tone(BUZZ, alarm_freq);
+      digitalWrite(VIBR, LOW);
+      delay(alarm_note_len);
+      noTone(BUZZ);
+      if(settings[buzzer] == 1 && curr_time - init_time > settings[buzzer_delay]*1000)
+        digitalWrite(VIBR, HIGH);
+      delay(len_between_notes);
+    }
+  }
 }
 
 void start_shake(unsigned long init_time){
@@ -104,7 +133,7 @@ void start_shake(unsigned long init_time){
   unsigned long time_shaken = 0;
   while(time_shaken < settings[shake_time]){
     // display progress
-    String messages[] = {"Goal", "Current"};
+    String messages[] = {"Goal: ", "Current: "};
     int values[] = {settings[shake_time], time_shaken};
     update_screen(messages, values, -1);
 
@@ -166,10 +195,10 @@ float total_acceleration(){
   );
 }
 
-void update_screen(String current_settings[], int values[], int being_changed){
+void update_screen(String messages[], int values[], int being_changed){
   lcd.clear();
-  for(int i = 0; i < sizeof(current_settings); i++){
-    String text = current_settings[i];
+  for(int i = 0; i < sizeof(messages); i++){
+    String text = messages[i];
     if(max_values[i] == 1){
       text += values[i] == 1 ? "On" : "Off";
     }else{
@@ -208,27 +237,27 @@ void set_settings(){
 
     // display proper settings on screen
     if(index == hours || index == minutes || index == seconds){
-      String current_settings[] = {"Hours", "Minutes", "Seconds"};
+      String current_settings[] = {"Hours: ", "Minutes: ", "Seconds: "};
       int values[] = {settings[hours], settings[minutes], settings[seconds]};
       update_screen(current_settings, values, index);
     }else if(index == alarm || index == alarm_volume || index == alarm_delay){
-      String current_settings[] = {"Alarm", "Alarm Volume", "Alarm Delay"};
+      String current_settings[] = {"Alarm: ", "Alarm Volume: ", "Alarm Delay: "};
       int values[] = {settings[alarm], settings[alarm_volume], settings[alarm_delay]};
       update_screen(current_settings, values, index);
     }else if(index == buzzer || index == buzzer_delay){
-      String current_settings[] = {"Vibration", "Vibration Delay"};
+      String current_settings[] = {"Vibration: ", "Vibration Delay: "};
       int values[] = {settings[buzzer], settings[buzzer_delay]};
       update_screen(current_settings, values, index);
     }else if(index == shake || index == shake_time){
-      String current_settings[] = {"Shake to Disable", "Shake Time"};
+      String current_settings[] = {"Shake to Disable: ", "Shake Time: "};
       int values[] = {settings[shake], settings[shake_time]};
       update_screen(current_settings, values, index);
     }else if(index == game || index == game_levels){
-      String current_settings[] = {"Memory Game to Disable", "Number of Levels"};
+      String current_settings[] = {"Memory Game to Disable: ", "Number of Levels: "};
       int values[] = {settings[game], settings[game_levels]};
       update_screen(current_settings, values, index);
     }else if(index == light){
-      String current_settings[] = {"Light to Disable"};
+      String current_settings[] = {"Light to Disable: "};
       int values[] = {settings[light]};
       update_screen(current_settings, values, index);
     }
