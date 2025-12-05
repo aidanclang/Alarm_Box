@@ -98,12 +98,16 @@ void start_noises(unsigned long init_time){
 }
 
 void start_shake(unsigned long init_time){
-  //TODO: update display during shaking
   if(settings[shake] == 0)
     return;
   unsigned long last_activity = millis();
   unsigned long time_shaken = 0;
   while(time_shaken < settings[shake_time]){
+    // display progress
+    String messages[] = {"Goal", "Current"};
+    int values[] = {settings[shake_time], time_shaken};
+    update_screen(messages, values, -1);
+
     if(millis() - last_activity > noise_time){
       start_noises(init_time);
       time_shaken = 0;
@@ -162,11 +166,15 @@ float total_acceleration(){
   );
 }
 
-void update_settings_screen(int num_settings, String current_settings[], int values[], int being_changed){
+void update_screen(String current_settings[], int values[], int being_changed){
   lcd.clear();
-  for(int i = 0; i < num_settings; i++){
+  for(int i = 0; i < sizeof(current_settings); i++){
     String text = current_settings[i];
-    text += values[i];
+    if(max_values[i] == 1){
+      text += values[i] == 1 ? "On" : "Off";
+    }else{
+      text += values[i];
+    }
     if(i == being_changed)
       text += " <";
     lcd.println(text);
@@ -198,20 +206,34 @@ void set_settings(){
   while(index < 13){
     read_buttons();
 
+    // display proper settings on screen
     if(index == hours || index == minutes || index == seconds){
-      // display timer settings on screen
-    } else if(index == alarm || index == alarm_volume || index == alarm_delay){
-      // display alarm settings
-    } else if(index == buzzer || index == buzzer_delay){
-      // display buzzer settings
-    } else if(index == shake || index == shake_time){
-      // display shake settings
-    } else if(index == game || index == game_levels){
-      // display game settings
-    } else if(index == light){
-      // display light settings
+      String current_settings[] = {"Hours", "Minutes", "Seconds"};
+      int values[] = {settings[hours], settings[minutes], settings[seconds]};
+      update_screen(current_settings, values, index);
+    }else if(index == alarm || index == alarm_volume || index == alarm_delay){
+      String current_settings[] = {"Alarm", "Alarm Volume", "Alarm Delay"};
+      int values[] = {settings[alarm], settings[alarm_volume], settings[alarm_delay]};
+      update_screen(current_settings, values, index);
+    }else if(index == buzzer || index == buzzer_delay){
+      String current_settings[] = {"Vibration", "Vibration Delay"};
+      int values[] = {settings[buzzer], settings[buzzer_delay]};
+      update_screen(current_settings, values, index);
+    }else if(index == shake || index == shake_time){
+      String current_settings[] = {"Shake to Disable", "Shake Time"};
+      int values[] = {settings[shake], settings[shake_time]};
+      update_screen(current_settings, values, index);
+    }else if(index == game || index == game_levels){
+      String current_settings[] = {"Memory Game to Disable", "Number of Levels"};
+      int values[] = {settings[game], settings[game_levels]};
+      update_screen(current_settings, values, index);
+    }else if(index == light){
+      String current_settings[] = {"Light to Disable"};
+      int values[] = {settings[light]};
+      update_screen(current_settings, values, index);
     }
 
+    // update settings or move to previous/next setting
     if(button_is_pressed(0)){
       index = max(index - 1, 0);
     } else if(button_is_pressed(3)){
