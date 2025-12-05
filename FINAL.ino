@@ -69,13 +69,84 @@ void setup() {
   lcd.display(); 
 }
 
-unsigned long get_ms(int hour, int min, int sec){
+unsigned long get_ms(int hr, int min, int sec){
   //TODO
   return 0;
 }
 
 void go_off(){
   //TODO
+}
+
+
+void start_game() {
+  unsigned long last_act = millis();
+  int pattern[] = {1,1,1,1};
+  int j = 0;
+  int sum = 0;
+  for(int i = 0; i< settings[11]; i++) {
+    for(int i = 0; i<4; i++) {
+      pattern[i] = random(1,4);
+    }
+    while(j < 4) {
+      if(millis() - last_act > 15000) {
+        start_noises();
+        last_act = millis();
+      }
+      for(int i = 0; i<4; i++) {
+        if(pattern[i] == 1) {
+          digitalWrite(LED0, 1);
+          delay(50);
+          digitalWrite(LED0, 0);
+        }else if(pattern[i] == 2) {
+          digitalWrite(LED1, 1);
+          delay(50);
+          digitalWrite(LED1, 0);
+        }else if(pattern[i] == 3) {
+          digitalWrite(LED2, 1);
+          delay(50);
+          digitalWrite(LED2, 0);
+        }else if(pattern[i] == 4) {
+          digitalWrite(LED3, 1);
+          delay(50);
+          digitalWrite(LED3, 0);
+        }
+      }
+      j = 0;
+      while(j < 4) {
+        unsigned long temp = millis();
+        sum = 0;
+        while (millis()-temp < 5000) {
+          read_buttons();
+          for(int i = 0; i<4; i++) {
+            sum += buttons[i];
+          }
+          if (sum > 0) {
+            last_act = millis();
+            break;
+          }
+        }
+        if (buttons[pattern[j]-1] == 1) {
+          j++;
+        } else {
+          break;
+        }
+      }
+    }
+  }  
+}
+void start_light() {
+  unsigned long last_act = millis();
+  bool light_received = false;
+  while (light_received = false) {
+    if(millis() - last_act > 15000) {
+      start_noises();
+      last_act = millis();
+    }
+    if(digitalRead(photoresistor) = 1) {
+      light_received = true;
+    }
+  }
 }
 
 // button reader with debouncing
