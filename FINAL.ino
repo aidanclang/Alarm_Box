@@ -3,19 +3,19 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-#define B0 0
-#define B1 0
-#define B2 0
-#define B3 0
+#define B0 16
+#define B1 4
+#define B2 2
+#define B3 15
 
-#define LED0 0
-#define LED1 0
-#define LED2 0
-#define LED3 0
+#define LED0 19
+#define LED1 18
+#define LED2 5
+#define LED3 17
 
-#define BUZZ 0
-#define VIBR 0
-#define LIGHT 0
+#define BUZZ 27
+#define VIBR 14
+#define LIGHT 32
 
 #define hours         0
 #define minutes       1
@@ -80,6 +80,10 @@ void setup() {
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
+
+  pinMode(BUZZ, OUTPUT);
+  pinMode(VIBR, OUTPUT);
+  pinMode(LIGHT, INPUT);
 
   if (!mpu.begin()) {
     Serial.println("Sensor init failed");
