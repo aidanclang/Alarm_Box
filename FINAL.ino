@@ -3,17 +3,17 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-#define B0 16
-#define B1 4
-#define B2 2
-#define B3 15
+#define B0 18
+#define B1 17
+#define B2 16
+#define B3 4
 
-#define LED0 19
-#define LED1 18
-#define LED2 5
-#define LED3 17
+#define LED0 33
+#define LED1 25
+#define LED2 26
+#define LED3 27
 
-#define BUZZ 27
+#define BUZZ 13
 #define VIBR 14
 #define LIGHT 32
 
@@ -101,7 +101,7 @@ void setup() {
   lcd.init();
   lcd.flipScreenVertically();
   lcd.clear();
-  lcd.setFont(ArialMT_Plain_24);
+  lcd.setFont(ArialMT_Plain_16);
   lcd.display();
 }
 
@@ -280,6 +280,7 @@ void timer(unsigned long time){
     lcd.drawString(0, 0, text);
     lcd.display();
   }
+  go_off();
 }
 
 void set_settings(){
@@ -325,6 +326,7 @@ void set_settings(){
       settings[index] = min(settings[index] + 1, max_values[index]);
     }
   }
+  timer(get_ms(settings[hours], settings[minutes], settings[seconds]));
 }
 
 void loop() {
