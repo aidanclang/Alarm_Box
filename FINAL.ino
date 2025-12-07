@@ -34,7 +34,7 @@
 // constants
 const unsigned long noise_time = 15000;
 const float shake_threshold = 25; // needs testing
-const unsigned long shake_increment = 1; // needs testing
+const unsigned long shake_increment = 200; // needs testing
 
 const int alarm_freq = 300;
 const int alarm_note_len = 250;
@@ -48,12 +48,11 @@ const int light_threshold = 3500;
 int button_delay = 50;
 int buttons[] = {B0, B1, B2, B3};
 unsigned long last_changes[] = {0, 0, 0, 0};
-int last_states[] = {LOW, LOW, LOW, LOW};
-int current_states[] = {LOW, LOW, LOW, LOW};
+int current_states[] = {HIGH, HIGH, HIGH, HIGH};
 int pressed[] = {0, 0, 0, 0};
 
 //default settings and their maximum values
-int settings[] = {
+int default_settings[] = {
   8, 0, 0,            // hours, minutes, seconds
   1, 5, 15,           // alarm, alarm_volume, alarm_delay
   1, 0,               // buzzer, buzzer_delay
@@ -61,8 +60,10 @@ int settings[] = {
   1, 5,               // game, game_levels
   1                   // light
 };
+int settings[13];
+
 int max_values[] = {
-  12, 12, 12,
+  23, 59, 59,
   1, 10, 30,
   1, 30,
   1, 60,
@@ -75,6 +76,8 @@ Adafruit_MPU6050 mpu;
 SSD1306Wire lcd(0x3c, SDA, SCL);
 
 void setup() {
+  Serial.begin(115200);
+
   pinMode(B0, INPUT_PULLUP);
   pinMode(B1, INPUT_PULLUP);
   pinMode(B2, INPUT_PULLUP);
@@ -88,6 +91,9 @@ void setup() {
   pinMode(BUZZ, OUTPUT);
   pinMode(VIBR, OUTPUT);
   pinMode(LIGHT, INPUT);
+
+  ledcSetup(0, 5000, 8);
+  ledcAttachPin(BUZZ, 0);
 
   if (!mpu.begin()) {
     Serial.println("Sensor init failed");
@@ -113,8 +119,10 @@ void start_noises(unsigned long init_time){
   // display instructions
   String message[] = {"Press any button. :"};
   int value[] = {0};
-  update_screen(message, value, -1);
+  update_screen(1, message, value, -1);
 
+  unsigned long last_switch = 0;
+  bool sound_on = false;
   bool input = false;
   while(!input){
     read_buttons();
@@ -123,16 +131,28 @@ void start_noises(unsigned long init_time){
             button_is_pressed(2) ||
             button_is_pressed(3);
     unsigned long curr_time = millis();
-    if(settings[alarm] == 1 && curr_time - init_time > settings[alarm_delay]*1000){
-      tone(BUZZ, alarm_freq);
-      digitalWrite(VIBR, LOW);
-      delay(alarm_note_len);
-      noTone(BUZZ);
-      if(settings[buzzer] == 1 && curr_time - init_time > settings[buzzer_delay]*1000)
-        digitalWrite(VIBR, HIGH);
-      delay(len_between_notes);
+    if(curr_time - last_switch > 250){
+      last_switch = curr_time;
+      sound_on = !sound_on;
+      if(settings[alarm] == 1 && curr_time - init_time > settings[alarm_delay]*1000){
+        if(sound_on){
+          ledcWriteTone(0, 2500);
+          digitalWrite(VIBR, LOW);
+        } else {
+          ledcWriteTone(0, 0);
+          if(settings[buzzer] == 1 && curr_time - init_time > settings[buzzer_delay]*1000)
+            digitalWrite(VIBR, HIGH);}
+      } else if (settings[buzzer] == 1 && curr_time - init_time > settings[buzzer_delay]*1000){
+        if(!sound_on){
+          digitalWrite(VIBR, LOW);
+        } else {
+          digitalWrite(VIBR, HIGH);
+        }
+      }
     }
   }
+  ledcWriteTone(0,0);
+  digitalWrite(VIBR, LOW);
 }
 
 void start_shake(unsigned long init_time){
@@ -140,11 +160,11 @@ void start_shake(unsigned long init_time){
     return;
   unsigned long last_activity = millis();
   unsigned long time_shaken = 0;
-  while(time_shaken < settings[shake_time]){
+  while(time_shaken < settings[shake_time]*1000){
     // display progress
     String messages[] = {"Goal: ", "Current: "};
-    int values[] = {settings[shake_time], time_shaken};
-    update_screen(messages, values, -1);
+    int values[] = {settings[shake_time], time_shaken/1000};
+    update_screen(2, messages, values, -1);
 
     if(millis() - last_activity > noise_time){
       start_noises(init_time);
@@ -153,6 +173,7 @@ void start_shake(unsigned long init_time){
     } else if(total_acceleration() > shake_threshold){
       time_shaken += shake_increment;
       last_activity = millis();
+      delay(100);
     }
   }
 }
@@ -169,13 +190,13 @@ void start_game(unsigned long init_time) {
   while(level <= settings[game_levels]) {
     for(int i = 0; i<level; i++) {
       digitalWrite(lights[pattern[i]], HIGH);
-      delay(50);
+      delay(1000);
       digitalWrite(lights[pattern[i]], LOW);
     }
     int step = 0;
     while(step < level) {
       read_buttons();
-      int sum = buttons[0] + buttons[1] + buttons[2] + buttons[3];
+      int sum = pressed[0] + pressed[1] + pressed[2] + pressed[3];
       if (sum > 0){
         last_act = millis();
         if (sum > 1)
@@ -220,16 +241,14 @@ void read_buttons(){
   for(int i = 0; i < 4; i++){
     int button = buttons[i];
     int reading = digitalRead(button);
-    if(reading != last_states[i])
-      last_changes[i] = millis();
-    
-    if(millis() > last_changes[i] + button_delay){
-      if(reading != current_states[i])
-        last_states[i] = current_states[i];
+
+    if(millis() > last_changes[i] + button_delay && reading != current_states[i]){
         current_states[i] = reading;
         pressed[i] = 1 - reading;
+        last_changes[i] = millis();
+      }else{
+      pressed[i] = 0;
     }
-    pressed[i] = 0;
   }
 }
 
@@ -247,18 +266,16 @@ float total_acceleration(){
   );
 }
 
-void update_screen(String messages[], int values[], int being_changed){
+void update_screen(int num_messages, String messages[], int values[], int being_changed){
   lcd.clear();
-  for(int i = 0; i < sizeof(messages); i++){
+  int y = 0;
+  for(int i = 0; i < num_messages; i++){
     String text = messages[i];
-    if(max_values[i] == 1){
-      text += values[i] == 1 ? "On" : "Off";
-    }else{
-      text += values[i];
-    }
+    text += values[i];
     if(i == being_changed)
       text += " <";
-    lcd.println(text);
+    lcd.drawString(0, y, text);
+    y += 15;
   }
   lcd.display();
 }
@@ -292,37 +309,37 @@ void set_settings(){
     if(index == hours || index == minutes || index == seconds){
       String current_settings[] = {"Hours: ", "Minutes: ", "Seconds: "};
       int values[] = {settings[hours], settings[minutes], settings[seconds]};
-      update_screen(current_settings, values, index);
+      update_screen(3, current_settings, values, index);
     }else if(index == alarm || index == alarm_volume || index == alarm_delay){
       String current_settings[] = {"Alarm: ", "Alarm Volume: ", "Alarm Delay: "};
       int values[] = {settings[alarm], settings[alarm_volume], settings[alarm_delay]};
-      update_screen(current_settings, values, index);
+      update_screen(3, current_settings, values, index - 3);
     }else if(index == buzzer || index == buzzer_delay){
-      String current_settings[] = {"Vibration: ", "Vibration Delay: "};
+      String current_settings[] = {"Vibrate: ", "Vibrate Delay: "};
       int values[] = {settings[buzzer], settings[buzzer_delay]};
-      update_screen(current_settings, values, index);
+      update_screen(2, current_settings, values, index - 6);
     }else if(index == shake || index == shake_time){
-      String current_settings[] = {"Shake to Disable: ", "Shake Time: "};
+      String current_settings[] = {"Shake: ", "Shake Time: "};
       int values[] = {settings[shake], settings[shake_time]};
-      update_screen(current_settings, values, index);
+      update_screen(2, current_settings, values, index - 8);
     }else if(index == game || index == game_levels){
-      String current_settings[] = {"Memory Game to Disable: ", "Number of Levels: "};
+      String current_settings[] = {"Memory Game: ", "Levels: "};
       int values[] = {settings[game], settings[game_levels]};
-      update_screen(current_settings, values, index);
+      update_screen(2, current_settings, values, index - 10);
     }else if(index == light){
-      String current_settings[] = {"Light to Disable: "};
+      String current_settings[] = {"Light Sensor: "};
       int values[] = {settings[light]};
-      update_screen(current_settings, values, index);
+      update_screen(1, current_settings, values, index - 12);
     }
 
     // update settings or move to previous/next setting
-    if(button_is_pressed(0)){
+    if(button_is_pressed(3)){
       index = max(index - 1, 0);
-    } else if(button_is_pressed(3)){
+    } else if(button_is_pressed(0)){
       index += 1;
-    } else if(button_is_pressed(1)){
-      settings[index] = max(settings[index] - 1, 0);
     } else if(button_is_pressed(2)){
+      settings[index] = max(settings[index] - 1, 0);
+    } else if(button_is_pressed(1)){
       settings[index] = min(settings[index] + 1, max_values[index]);
     }
   }
@@ -330,5 +347,8 @@ void set_settings(){
 }
 
 void loop() {
+  for(int i = 0; i < 13; i++){
+    settings[i] = default_settings[i];
+  }
   set_settings();
 }
