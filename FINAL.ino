@@ -3,19 +3,19 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-#define B0 0
-#define B1 0
-#define B2 0
-#define B3 0
+#define B0 18
+#define B1 17
+#define B2 16
+#define B3 4
 
-#define LED0 0
-#define LED1 0
-#define LED2 0
-#define LED3 0
+#define LED0 33
+#define LED1 25
+#define LED2 26
+#define LED3 27
 
-#define BUZZ 0
-#define VIBR 0
-#define LIGHT 0
+#define BUZZ 13
+#define VIBR 14
+#define LIGHT 32
 
 #define hours         0
 #define minutes       1
@@ -39,6 +39,10 @@ const unsigned long shake_increment = 1; // needs testing
 const int alarm_freq = 300;
 const int alarm_note_len = 250;
 const int len_between_notes = 250;
+
+const int lights[] = {LED0, LED1, LED2, LED3};
+
+const int light_threshold = 3500;
 
 // things for button reading
 int button_delay = 50;
@@ -81,6 +85,10 @@ void setup() {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
 
+  pinMode(BUZZ, OUTPUT);
+  pinMode(VIBR, OUTPUT);
+  pinMode(LIGHT, INPUT);
+
   if (!mpu.begin()) {
     Serial.println("Sensor init failed");
     while (1)
@@ -93,7 +101,7 @@ void setup() {
   lcd.init();
   lcd.flipScreenVertically();
   lcd.clear();
-  lcd.setFont(ArialMT_Plain_24);
+  lcd.setFont(ArialMT_Plain_16);
   lcd.display();
 }
 
@@ -140,6 +148,7 @@ void start_shake(unsigned long init_time){
 
     if(millis() - last_activity > noise_time){
       start_noises(init_time);
+      last_activity = millis();
       time_shaken = 0;
     } else if(total_acceleration() > shake_threshold){
       time_shaken += shake_increment;
@@ -148,12 +157,54 @@ void start_shake(unsigned long init_time){
   }
 }
 
-void start_game(unsigned long init_time){
-  //TODO
+void start_game(unsigned long init_time) {
+  if(settings[game] == 0)
+    return;
+  unsigned long last_act = millis();
+  int pattern[settings[game_levels]];
+  for(int i = 0; i<settings[game_levels]; i++) {
+    pattern[i] = random(0,4);
+  }
+  int level = 1;
+  while(level <= settings[game_levels]) {
+    for(int i = 0; i<level; i++) {
+      digitalWrite(lights[pattern[i]], HIGH);
+      delay(50);
+      digitalWrite(lights[pattern[i]], LOW);
+    }
+    int step = 0;
+    while(step < level) {
+      read_buttons();
+      int sum = buttons[0] + buttons[1] + buttons[2] + buttons[3];
+      if (sum > 0){
+        last_act = millis();
+        if (sum > 1)
+          break;
+        if (buttons[pattern[step]] == 1) {
+          step++;
+        } else {
+          break;
+        }
+      }
+      if(millis() - last_act > 15000) {
+        start_noises(init_time);
+        last_act = millis();
+      }
+    }
+    level++;
+  }  
 }
 
-void start_light(unsigned long init_time){
-  //TODO
+void start_light(unsigned long init_time) {
+  if(settings[light] == 0)
+    return;
+  unsigned long last_act = millis();
+  while (analogRead(LIGHT) < light_threshold) {
+    if(millis() - last_act > 15000) {
+      start_noises(init_time);
+      last_act = millis();
+    }
+  }
 }
 
 void go_off(){
@@ -229,6 +280,7 @@ void timer(unsigned long time){
     lcd.drawString(0, 0, text);
     lcd.display();
   }
+  go_off();
 }
 
 void set_settings(){
@@ -274,6 +326,7 @@ void set_settings(){
       settings[index] = min(settings[index] + 1, max_values[index]);
     }
   }
+  timer(get_ms(settings[hours], settings[minutes], settings[seconds]));
 }
 
 void loop() {
