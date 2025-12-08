@@ -8,14 +8,14 @@
 #define B2 16
 #define B3 4
 
-#define LED0 33
-#define LED1 25
-#define LED2 26
-#define LED3 27
+#define LED0 27
+#define LED1 26
+#define LED2 25
+#define LED3 33
 
 #define BUZZ 13
 #define VIBR 14
-#define LIGHT 32
+#define LIGHT 19
 
 #define hours         0
 #define minutes       1
@@ -367,7 +367,7 @@ void set_settings(){
 }
 
 void loop() {
-  for(int i = 0; i < 13; i++){
+  for(int i = 0; i < 12; i++){
     settings[i] = default_settings[i];
   }
   set_settings();
